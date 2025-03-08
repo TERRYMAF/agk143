@@ -64,7 +64,7 @@ def analyze_image_with_vision_api(image_file):
     # Get settings from secrets.toml
     endpoint = get_secret("azure_endpoint")
     api_key = get_secret("azure_api_key")
-    model = get_secret("azure_model", "EDM-mini")
+    model = get_secret("azure_model", "4o-mini")
     api_version = get_secret("api_version", "2024-02-15-preview")
     
     # Check if required settings are available
@@ -121,21 +121,64 @@ def analyze_image_with_vision_api(image_file):
         # Check for HTTP errors
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code}")
+            with st.expander("Response Details"):
+                st.text(response.text)
             return None
         
         # Parse and return the response
         result = response.json()
-        content = result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
         
-        # Try to parse the content as JSON
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            st.error("Failed to parse response as JSON")
+        # Show the raw JSON response for debugging
+        with st.expander("Raw API Response"):
+            st.json(result)
+        
+        # Extract the content from the response
+        if "choices" in result and len(result["choices"]) > 0:
+            content = result["choices"][0].get("message", {}).get("content", "{}")
+            
+            # Display the raw content for debugging
+            with st.expander("Raw Content"):
+                st.code(content)
+            
+            # Try to parse the content as JSON
+            try:
+                parsed_result = json.loads(content)
+                return parsed_result
+            except json.JSONDecodeError as e:
+                st.error(f"JSON parse error: {str(e)}")
+                st.write("The response is not valid JSON. Here's the content received:")
+                st.code(content)
+                
+                # Try to extract a JSON object from the content if it contains one
+                # Often the API might return text with a JSON object embedded
+                try:
+                    # Look for a pattern that might be JSON (between curly braces)
+                    import re
+                    json_pattern = r'\{.*\}'
+                    matches = re.search(json_pattern, content, re.DOTALL)
+                    if matches:
+                        possible_json = matches.group(0)
+                        parsed_result = json.loads(possible_json)
+                        st.success("Found and extracted a JSON object from the response!")
+                        return parsed_result
+                except:
+                    pass
+                    
+                # If all else fails, create a dummy result based on the content
+                st.warning("Creating a fallback response based on the text")
+                return {
+                    "total_count": 0,
+                    "unripe_count": 0,
+                    "ripe_count": 0,
+                    "overripe_count": 0,
+                    "detailed_analysis": "Unable to extract proper JSON. Raw response: " + content[:200] + "..."
+                }
+        else:
+            st.error("Unexpected API response format")
             return None
             
     except requests.exceptions.RequestException as e:
-        st.error(f"Error in API request")
+        st.error(f"Error in API request: {str(e)}")
         return None
 
 def main():
