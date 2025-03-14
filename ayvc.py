@@ -269,8 +269,7 @@ def main():
                 """, unsafe_allow_html=True)
                 
                 # Hidden button to handle the click
-                if st.button(f"Select {fruit_data['name']}", key=f"select_{fruit_id}", help=f"Analyze {fruit_data['name']}", 
-                           style="display: none;"):
+                if st.button(f"Select {fruit_data['name']}", key=f"select_{fruit_id}", help=f"Analyze {fruit_data['name']}"):
                     st.session_state.fruit_selected = fruit_id
                     st.rerun()
     
