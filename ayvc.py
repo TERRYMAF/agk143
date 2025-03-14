@@ -104,11 +104,27 @@ FRUIT_CONFIG = {
 
 def capture_image(key):
     """Capture image from webcam with a unique key"""
-    img_file_buffer = st.camera_input(f"Take picture #{key}", key=f"camera_{key}")
+    # Check if we already have the maximum number of images
+    if 'captured_images' in st.session_state and len(st.session_state.captured_images) >= 5:
+        st.warning("Maximum 5 images allowed. Please process current images or remove some.")
+        return None, None
+        
+    img_file_buffer = st.camera_input(f"Take picture", key=f"camera_{key}")
     if img_file_buffer is not None:
         # Convert to OpenCV format
         bytes_data = img_file_buffer.getvalue()
         img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+        
+        # Automatically add to collection
+        if 'captured_images' in st.session_state:
+            st.session_state.captured_images.append(img)
+            st.session_state.captured_image_files.append(img_file_buffer)
+            st.success(f"Image added! ({len(st.session_state.captured_images)}/5)")
+            
+            # Clear the camera for next image - this is done by triggering a rerun
+            # We need to rerun after a short delay to allow the success message to be seen
+            st.rerun()
+            
         return img, img_file_buffer
     return None, None
 
@@ -304,22 +320,7 @@ def main():
         st.markdown(f"📷 Take pictures of {fruit_data['name']}s (maximum 5)")
         
         # Single camera element
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            img, img_file = capture_image("main")
-        
-        # Button to add the captured image to the collection
-        with col2:
-            if img is not None and img_file is not None:
-                if st.button("Add to collection", key="add_to_collection"):
-                    if len(st.session_state.captured_images) < 5:
-                        st.session_state.captured_images.append(img)
-                        st.session_state.captured_image_files.append(img_file)
-                        st.success(f"Image added! ({len(st.session_state.captured_images)}/5)")
-                        st.rerun()
-                    else:
-                        st.error("Maximum 5 images allowed. Please process current images first.")
+        img, img_file = capture_image("main")
         
         # Display currently captured images
         if len(st.session_state.captured_images) > 0:
