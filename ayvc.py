@@ -261,18 +261,24 @@ def main():
         
         for i, (fruit_id, fruit_data) in enumerate(FRUIT_CONFIG.items()):
             with cols[i]:
-                # Create a clickable card for each fruit
+                # Display fruit name as text
+                st.write(f"**{fruit_data['name']}**", unsafe_allow_html=True)
+                
+                # Create a clickable rounded button with just emoji
                 st.markdown(f"""
-                <div style="padding: 20px; text-align: center; border: 1px solid #ddd; border-radius: 10px; cursor: pointer;" onclick="
+                <div style="padding: 15px; text-align: center; border: 1px solid #ddd; 
+                     border-radius: 50px; cursor: pointer; width: 80px; height: 80px; 
+                     display: flex; align-items: center; justify-content: center;
+                     margin: 0 auto; background-color: #f8f9fa;" onclick="
                     document.querySelector('#select_{fruit_id}').click()
                 ">
                     <div style="font-size: 40px;">{fruit_data['emoji']}</div>
-                    <div style="font-size: 20px; margin-top: 10px;">{fruit_data['name']}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 
                 # Hidden button to handle the click
-                if st.button(f"Select {fruit_data['name']}", key=f"select_{fruit_id}", help=f"Analyze {fruit_data['name']}"):
+                if st.button(f"Select {fruit_data['name']}", key=f"select_{fruit_id}", help=f"Analyze {fruit_data['name']}", 
+                           style="display: none;"):
                     st.session_state.fruit_selected = fruit_id
                     st.rerun()
     
@@ -296,19 +302,56 @@ def main():
         images = []
         image_files = []
         
-        # Container for the camera inputs
-        st.markdown(f"📷 Take up to 5 pictures of {fruit_data['name']}s")
+        # Initialize list in session state if not existing
+        if 'captured_images' not in st.session_state:
+            st.session_state.captured_images = []
+            st.session_state.captured_image_files = []
         
-        # Create separate columns for the 5 images
-        cols = st.columns(5)
+        # Container for the camera input
+        st.markdown(f"📷 Take pictures of {fruit_data['name']}s (maximum 5)")
         
-        # Capture up to 5 images
-        for i in range(5):
-            with cols[i]:
-                img, img_file = capture_image(i+1)
-                if img is not None and img_file is not None:
-                    images.append(img)
-                    image_files.append(img_file)
+        # Single camera element
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            img, img_file = capture_image("main")
+        
+        # Button to add the captured image to the collection
+        with col2:
+            if img is not None and img_file is not None:
+                if st.button("Add to collection", key="add_to_collection"):
+                    if len(st.session_state.captured_images) < 5:
+                        st.session_state.captured_images.append(img)
+                        st.session_state.captured_image_files.append(img_file)
+                        st.success(f"Image added! ({len(st.session_state.captured_images)}/5)")
+                        st.rerun()
+                    else:
+                        st.error("Maximum 5 images allowed. Please process current images first.")
+        
+        # Display currently captured images
+        if len(st.session_state.captured_images) > 0:
+            st.subheader("Captured Images")
+            
+            # Display images in a grid
+            image_cols = st.columns(min(5, len(st.session_state.captured_images)))
+            
+            for i, img in enumerate(st.session_state.captured_images):
+                with image_cols[i]:
+                    st.image(img, channels="BGR", use_column_width=True)
+                    if st.button("Remove", key=f"remove_{i}"):
+                        st.session_state.captured_images.pop(i)
+                        st.session_state.captured_image_files.pop(i)
+                        st.rerun()
+            
+            # Clear all button
+            if st.button("Clear All Images"):
+                st.session_state.captured_images = []
+                st.session_state.captured_image_files = []
+                st.rerun()
+                
+        # Use the session state images
+        images = st.session_state.captured_images
+        image_files = st.session_state.captured_image_files
         
         # Process button
         col1, col2 = st.columns([5, 1])
