@@ -274,7 +274,7 @@ def main():
                 # Hidden button to handle the click
                 if st.button(f"Select {fruit_data['name']}", key=f"select_{fruit_id}", help=f"Analyze {fruit_data['name']}"):
                     st.session_state.fruit_selected = fruit_id
-                    st.experimental_rerun()
+                    st.rerun()
     
     # If fruit is selected, show the camera interface
     else:
@@ -287,7 +287,7 @@ def main():
             if st.button("← Back to fruits"):
                 st.session_state.fruit_selected = None
                 st.session_state.analysis_results = []
-                st.experimental_rerun()
+                st.rerun()
         
         with col2:
             st.subheader(f"Analyzing {fruit_data['emoji']} {fruit_data['name']}")
