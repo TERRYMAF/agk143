@@ -108,23 +108,27 @@ def capture_image(key):
     if 'captured_images' in st.session_state and len(st.session_state.captured_images) >= 5:
         st.warning("Maximum 5 images allowed. Please process current images or remove some.")
         return None, None
+    
+    # Store the current count of images to detect new captures
+    previous_count = 0
+    if 'captured_images' in st.session_state:
+        previous_count = len(st.session_state.captured_images)
         
     img_file_buffer = st.camera_input(f"Take picture", key=f"camera_{key}")
+    
     if img_file_buffer is not None:
         # Convert to OpenCV format
         bytes_data = img_file_buffer.getvalue()
         img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
         
-        # Automatically add to collection
-        if 'captured_images' in st.session_state:
-            st.session_state.captured_images.append(img)
-            st.session_state.captured_image_files.append(img_file_buffer)
-            st.success(f"Image added! ({len(st.session_state.captured_images)}/5)")
-            
-            # Clear the camera for next image - this is done by triggering a rerun
-            # We need to rerun after a short delay to allow the success message to be seen
-            st.rerun()
-            
+        # Add button to confirm this image
+        if st.button("Add this image to collection", key=f"add_image_{key}"):
+            if 'captured_images' in st.session_state and len(st.session_state.captured_images) < 5:
+                st.session_state.captured_images.append(img)
+                st.session_state.captured_image_files.append(img_file_buffer)
+                st.success(f"Image added! ({len(st.session_state.captured_images)}/5)")
+                st.rerun()
+        
         return img, img_file_buffer
     return None, None
 
@@ -259,6 +263,11 @@ def main():
     
     if 'analysis_results' not in st.session_state:
         st.session_state.analysis_results = []
+        
+    # Initialize captured images list
+    if 'captured_images' not in st.session_state:
+        st.session_state.captured_images = []
+        st.session_state.captured_image_files = []
     
     # If fruit is not selected, show fruit selection tiles
     if st.session_state.fruit_selected is None:
