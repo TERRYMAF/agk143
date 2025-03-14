@@ -191,17 +191,9 @@ def analyze_image_with_vision_api(image_file, fruit_type):
         # Parse and return the response
         result = response.json()
         
-        # Show the raw JSON response for debugging
-        with st.expander("Raw API Response"):
-            st.json(result)
-        
         # Extract the content from the response
         if "choices" in result and len(result["choices"]) > 0:
             content = result["choices"][0].get("message", {}).get("content", "{}")
-            
-            # Display the raw content for debugging
-            with st.expander("Raw Content"):
-                st.code(content)
             
             # Try to parse the content as JSON
             try:
@@ -293,6 +285,8 @@ def main():
             if st.button("← Back to fruits"):
                 st.session_state.fruit_selected = None
                 st.session_state.analysis_results = []
+                st.session_state.captured_images = []
+                st.session_state.captured_image_files = []
                 st.rerun()
         
         with col2:
@@ -332,16 +326,32 @@ def main():
         if len(st.session_state.captured_images) > 0:
             st.subheader("Captured Images")
             
-            # Display images in a grid
-            image_cols = st.columns(min(5, len(st.session_state.captured_images)))
+            # Create columns for displaying images
+            num_images = len(st.session_state.captured_images)
+            cols_per_row = min(3, num_images)  # Up to 3 images per row
             
-            for i, img in enumerate(st.session_state.captured_images):
-                with image_cols[i]:
-                    st.image(img, channels="BGR", use_column_width=True)
-                    if st.button("Remove", key=f"remove_{i}"):
-                        st.session_state.captured_images.pop(i)
-                        st.session_state.captured_image_files.pop(i)
-                        st.rerun()
+            # Calculate how many rows we need
+            num_rows = (num_images + cols_per_row - 1) // cols_per_row
+            
+            # Display images row by row
+            for row in range(num_rows):
+                # Create columns for this row
+                image_cols = st.columns(cols_per_row)
+                
+                # Fill the columns with images
+                for col in range(cols_per_row):
+                    idx = row * cols_per_row + col
+                    
+                    # Check if we've run out of images
+                    if idx >= num_images:
+                        break
+                        
+                    with image_cols[col]:
+                        st.image(st.session_state.captured_images[idx], channels="BGR", use_column_width=True)
+                        if st.button("Remove", key=f"remove_{idx}"):
+                            st.session_state.captured_images.pop(idx)
+                            st.session_state.captured_image_files.pop(idx)
+                            st.rerun()
             
             # Clear all button
             if st.button("Clear All Images"):
@@ -366,14 +376,14 @@ def main():
             
             # Process each image
             for idx, (img, img_file) in enumerate(zip(images, image_files)):
-                with st.expander(f"Image #{idx+1} Analysis", expanded=True):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.image(img, channels="BGR", use_column_width=True)
-                    
-                    with col2:
-                        with st.spinner(f"Analyzing image #{idx+1}..."):
+                st.subheader(f"Image #{idx+1} Analysis")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.image(img, channels="BGR", use_column_width=True)
+                
+                with col2:
+                    with st.spinner(f"Analyzing image #{idx+1}..."):
                             # Process the image using the API
                             results = analyze_image_with_vision_api(img_file, selected_fruit)
                             
