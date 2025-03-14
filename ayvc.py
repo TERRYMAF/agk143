@@ -335,34 +335,22 @@ def main():
         if len(st.session_state.captured_images) > 0:
             st.subheader("Captured Images")
             
-            # Create columns for displaying images
-            num_images = len(st.session_state.captured_images)
-            cols_per_row = min(3, num_images)  # Up to 3 images per row
+            # Display images horizontally in a single row
+            st.subheader("Captured Images")
             
-            # Calculate how many rows we need
-            num_rows = (num_images + cols_per_row - 1) // cols_per_row
+            # Create a single row for all images
+            image_cols = st.columns(len(st.session_state.captured_images))
             
-            # Display images row by row
-            for row in range(num_rows):
-                # Create columns for this row
-                image_cols = st.columns(cols_per_row)
-                
-                # Fill the columns with images
-                for col in range(cols_per_row):
-                    idx = row * cols_per_row + col
-                    
-                    # Check if we've run out of images
-                    if idx >= num_images:
-                        break
-                        
-                    with image_cols[col]:
-                        st.image(st.session_state.captured_images[idx], channels="BGR", use_column_width=True)
-                        if st.button("Remove", key=f"remove_{idx}"):
-                            st.session_state.captured_images.pop(idx)
-                            st.session_state.captured_image_files.pop(idx)
-                            st.rerun()
+            # Display each image
+            for idx, img in enumerate(st.session_state.captured_images):
+                with image_cols[idx]:
+                    st.image(img, channels="BGR", use_column_width=True)
+                    if st.button("Remove", key=f"remove_{idx}"):
+                        st.session_state.captured_images.pop(idx)
+                        st.session_state.captured_image_files.pop(idx)
+                        st.rerun()
             
-            # Clear all button
+            # Clear all button in a separate row
             if st.button("Clear All Images"):
                 st.session_state.captured_images = []
                 st.session_state.captured_image_files = []
